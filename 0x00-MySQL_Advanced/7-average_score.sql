@@ -1,4 +1,4 @@
--- A stored procedure AddBonus that adds a new correction for a student.
+-- A stored procedure that computes average score for a user
 DELIMITER $$
 CREATE PROCEDURE ComputeAverageScoreForUser(IN user_id INT)
 BEGIN
