@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """A module that uses PyMongo to list all documents in a collection"""
-import pymongo
 
 
 def list_all(mongo_collection):
