@@ -20,6 +20,7 @@ def cache(fn: Callable) -> Callable:
             return content.decode('utf-8')
         res = fn(*args, **kwargs)
         r.set('content: url', res)
+        r.set(f'count:{url}', 1)
         r.expire(f'content:{url}', timedelta(seconds=10))
         return res
     return wrapper
