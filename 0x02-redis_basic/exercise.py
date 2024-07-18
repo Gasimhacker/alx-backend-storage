@@ -18,6 +18,22 @@ def count_calls(method: Callable) -> Callable:
     return wrapper
 
 
+def call_history(method: Callable) -> Callable:
+    """Create a history for method calls"""
+    key = method.__qualname__
+    input_key = f'{key}:inputs'
+    output_key = f'{key}:outputs'
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        """A wrapper around methods to make a call history"""
+        self._redis.rpush(input_key, str(args))
+        output = str(method(self, *args, **kwargs))
+        self._redis.rpush(output_key, output)
+        return output
+    return wrapper
+
+
 class Cache:
     """A class that represent the caching mechanism"""
 
@@ -27,6 +43,7 @@ class Cache:
         self._redis.flushdb()
 
     @count_calls
+    @call_history
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """Store a new value in the database"""
         key = str(uuid4())
