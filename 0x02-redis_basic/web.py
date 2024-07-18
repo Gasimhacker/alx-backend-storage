@@ -1,33 +1,51 @@
 #!/usr/bin/env python3
-"""A module that contains the Cache class"""
-import redis
+"""
+This Module implements an expiring web cache and tracker
+"""
 import requests
+import time
 from functools import wraps
-from typing import Callable
-from datetime import timedelta
+
+CACHE_EXPIRATION_TIME = 10  # seconds
+CACHE = {}
 
 
-def cache(fn: Callable) -> Callable:
-    """Cache the get requests"""
+def cache(fn):
+    """
+    Args:
+        fn (function): _description_
+    Returns:
+        _type_: _description_
+    """
     @wraps(fn)
-    def wrapper(*args, **kwargs):
-        """A wrapper to cache the result of get equests"""
+    def wrapped(*args, **kwargs):
+        """
+        Returns:
+            _type_: _description_
+        """
         url = args[0]
-        r = redis.Redis()
-        r.incr(f'count:{url}')
-        content = r.get('content: url')
-        if content:
-            return content.decode('utf-8')
-        res = fn(*args, **kwargs)
-        r.set('content: url', res)
-        r.set(f'count:{url}', 1)
-        r.expire(f'content:{url}', timedelta(seconds=10))
-        return res
-    return wrapper
+        if url in CACHE and CACHE[url]["timestamp"] + CACHE_EXPIRATION_TIME > \
+                time.time():
+            CACHE[url]["count"] += 1
+            return CACHE[url]["content"]
+        else:
+            content = fn(*args, **kwargs)
+            CACHE[url] = {"content": content,
+                          "timestamp": time.time(), "count": 1}
+            return content
+    return wrapped
 
 
 @cache
 def get_page(url: str) -> str:
-    """Obtain the HTML content of a particular URL and returns it"""
-    res = requests.get(url)
-    return res.content.decode('utf-8')
+    """
+    Args:
+        url (str): _description_
+    Returns:
+        str: _description_
+    """
+    global count
+    # increment count
+    count += 1
+    response = requests.get(url)
+    return response.content.decode('utf-8')
