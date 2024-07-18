@@ -11,6 +11,7 @@ class Cache:
     def __init__(self):
         """Initialize the Cache class by creating a redis instance"""
         self._redis = redis.Redis()
+        self._redis.flushdb()
 
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """Store a new value in the database"""
