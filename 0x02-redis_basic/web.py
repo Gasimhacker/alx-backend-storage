@@ -1,33 +1,38 @@
 #!/usr/bin/env python3
-"""A module that contains the Cache class"""
+'''A module with tools for request caching and tracking.
+'''
 import redis
 import requests
 from functools import wraps
 from typing import Callable
-from datetime import timedelta
 
 
-r = redis.Redis()
+redis_store = redis.Redis()
+'''The module-level Redis instance.
+'''
 
 
-def cache(fn: Callable) -> Callable:
-    """Cache the get requests"""
-    @wraps(fn)
-    def wrapper(url):
-        """A wrapper to cache the result of get equests"""
-        r.incr(f'count:{url}')
-        content = r.get('content: url')
-        if content:
-            return content.decode('utf-8')
-        res = fn(url)
-        r.set(f'count:{url}', 1)
-        r.setex('content: url', 10, res)
-        return res
-    return wrapper
+def data_cacher(method: Callable) -> Callable:
+    '''Caches the output of fetched data.
+    '''
+    @wraps(method)
+    def invoker(url) -> str:
+        '''The wrapper function for caching the output.
+        '''
+        redis_store.incr(f'count:{url}')
+        result = redis_store.get(f'result:{url}')
+        if result:
+            return result.decode('utf-8')
+        result = method(url)
+        redis_store.set(f'count:{url}', 0)
+        redis_store.setex(f'result:{url}', 10, result)
+        return result
+    return invoker
 
 
-@cache
+@data_cacher
 def get_page(url: str) -> str:
-    """Obtain the HTML content of a particular URL and returns it"""
-    res = requests.get(url)
-    return res.content.decode('utf-8')
+    '''Returns the content of a URL after caching the request's response,
+    and tracking the request.
+    '''
+    return requests.get(url).text
